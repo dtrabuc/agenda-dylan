@@ -1,7 +1,22 @@
+const eventService = require('../services/eventService');
+const userService = require('../services/userService');
+
 // Récupérer tous les événements
-exports.getAllEvents = (req, res) => {
+exports.getAllEvents = async (req, res) => {
   try {
-    const events = req.app.locals.events;
+    const { userId, startDate, endDate, status } = req.query;
+    
+    const filters = {};
+    if (startDate && endDate) {
+      filters.startDate = startDate;
+      filters.endDate = endDate;
+    }
+    if (status) {
+      filters.status = status;
+    }
+    
+    const events = await eventService.getAllEvents(userId, filters);
+    
     res.json({
       success: true,
       data: events,
@@ -10,53 +25,82 @@ exports.getAllEvents = (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération des événements'
+      error: error.message || 'Erreur lors de la récupération des événements'
     });
   }
 };
 
 // Récupérer un événement par ID
-exports.getEventById = (req, res) => {
+exports.getEventById = async (req, res) => {
   try {
-    const eventId = parseInt(req.params.id);
-    const event = req.app.locals.events.find(e => e.id === eventId);
-    
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Événement non trouvé'
-      });
-    }
+    const eventId = req.params.id;
+    const event = await eventService.getEventById(eventId);
     
     res.json({
       success: true,
       data: event
     });
   } catch (error) {
+    if (error.message.includes('non trouvé')) {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération de l\'événement'
+      error: error.message || 'Erreur lors de la récupération de l\'événement'
     });
   }
 };
 
 // Créer un nouvel événement
-exports.createEvent = (req, res) => {
+exports.createEvent = async (req, res) => {
   try {
-    const { title, description, start, end, category, priority } = req.body;
+    const { 
+      title, 
+      description, 
+      startDate, 
+      endDate, 
+      location,
+      isAllDay,
+      color,
+      status,
+      userId 
+    } = req.body;
     
-    const newEvent = {
-      id: Date.now(), // ID temporaire, utiliser UUID en production
+    // Validation des champs requis
+    if (!title || !startDate || !userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Les champs title, startDate et userId sont requis'
+      });
+    }
+
+    // Vérifier que l'utilisateur existe
+    try {
+      await userService.getUserById(userId);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Utilisateur non trouvé'
+      });
+    }
+    
+    const eventData = {
       title,
       description,
-      start,
-      end,
-      category: category || 'général',
-      priority: priority || 'moyenne',
-      createdAt: new Date().toISOString()
+      startDate,
+      endDate,
+      location,
+      isAllDay: isAllDay || false,
+      color: color || '#3b82f6',
+      status: status || 'SCHEDULED',
+      userId
     };
     
-    req.app.locals.events.push(newEvent);
+    const newEvent = await eventService.createEvent(eventData);
     
     res.status(201).json({
       success: true,
@@ -66,73 +110,101 @@ exports.createEvent = (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la création de l\'événement'
+      error: error.message || 'Erreur lors de la création de l\'événement'
     });
   }
 };
 
 // Modifier un événement
-exports.updateEvent = (req, res) => {
+exports.updateEvent = async (req, res) => {
   try {
-    const eventId = parseInt(req.params.id);
-    const eventIndex = req.app.locals.events.findIndex(e => e.id === eventId);
+    const eventId = req.params.id;
+    const updateData = req.body;
     
-    if (eventIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'Événement non trouvé'
-      });
+    // Validation des données si nécessaire
+    if (updateData.userId) {
+      try {
+        await userService.getUserById(updateData.userId);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+      }
     }
     
-    const { title, description, start, end, category, priority } = req.body;
-    
-    req.app.locals.events[eventIndex] = {
-      ...req.app.locals.events[eventIndex],
-      title,
-      description,
-      start,
-      end,
-      category,
-      priority,
-      updatedAt: new Date().toISOString()
-    };
+    const updatedEvent = await eventService.updateEvent(eventId, updateData);
     
     res.json({
       success: true,
-      message: 'Événement modifié avec succès',
-      data: req.app.locals.events[eventIndex]
+      message: 'Événement mis à jour avec succès',
+      data: updatedEvent
     });
   } catch (error) {
+    if (error.message.includes('non trouvé')) {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la modification de l\'événement'
+      error: error.message || 'Erreur lors de la mise à jour de l\'événement'
     });
   }
 };
 
 // Supprimer un événement
-exports.deleteEvent = (req, res) => {
+exports.deleteEvent = async (req, res) => {
   try {
-    const eventId = parseInt(req.params.id);
-    const eventIndex = req.app.locals.events.findIndex(e => e.id === eventId);
+    const eventId = req.params.id;
     
-    if (eventIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'Événement non trouvé'
-      });
-    }
-    
-    req.app.locals.events.splice(eventIndex, 1);
+    await eventService.deleteEvent(eventId);
     
     res.json({
       success: true,
       message: 'Événement supprimé avec succès'
     });
   } catch (error) {
+    if (error.message.includes('non trouvé')) {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la suppression de l\'événement'
+      error: error.message || 'Erreur lors de la suppression de l\'événement'
+    });
+  }
+};
+
+// Récupérer les événements par période
+exports.getEventsByDateRange = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Les paramètres startDate et endDate sont requis'
+      });
+    }
+    
+    const events = await eventService.getEventsByDateRange(userId, startDate, endDate);
+    
+    res.json({
+      success: true,
+      data: events,
+      count: events.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erreur lors de la récupération des événements par période'
     });
   }
 };

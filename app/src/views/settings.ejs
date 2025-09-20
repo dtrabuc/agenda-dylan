@@ -1,0 +1,40 @@
+<section class="container" style="max-width:720px;">
+  <header class="header">
+    <h1><%= heading %></h1>
+    <a href="/" class="btn btn-secondary">← Retour</a>
+  </header>
+
+  <div class="form-group">
+    <label>Thème</label>
+    <select id="theme" class="form-control">
+      <option value="light">Clair</option>
+      <option value="dark">Sombre</option>
+    </select>
+  </div>
+
+  <div class="form-actions">
+    <button id="saveSettings" class="btn btn-primary">Sauvegarder</button>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</section>
+
+<script>
+  const toast = (msg, isError=false) => {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast ' + (isError ? 'error' : '');
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 2500);
+  };
+
+  // Charger la préférence
+  const themeSel = document.getElementById('theme');
+  const saved = localStorage.getItem('theme') || 'light';
+  themeSel.value = saved;
+
+  document.getElementById('saveSettings').addEventListener('click', () => {
+    localStorage.setItem('theme', themeSel.value);
+    toast('Paramètres sauvegardés');
+  });
+</script>

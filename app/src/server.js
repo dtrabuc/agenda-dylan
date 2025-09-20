@@ -2,7 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const expressLayouts = require('express-ejs-layouts');
 const eventRoutes = require('./routes/events');
+const userRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 5555;
@@ -13,34 +15,45 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Base de données simulée (remplacer par MongoDB/PostgreSQL en production)
-app.locals.events = [
-  {
-    id: 1,
-    title: "Réunion équipe",
-    description: "Réunion hebdomadaire de l'équipe",
-    start: "2025-09-21T09:00:00",
-    end: "2025-09-21T10:30:00",
-    category: "travail",
-    priority: "haute"
-  },
-  {
-    id: 2,
-    title: "RDV médecin",
-    description: "Consultation de routine",
-    start: "2025-09-23T14:00:00",
-    end: "2025-09-23T15:00:00",
-    category: "personnel",
-    priority: "moyenne"
-  }
-];
+// View engine: EJS (without touching current frontend)
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 
-// Routes
+// Routes API
 app.use('/api/events', eventRoutes);
+app.use('/api/users', userRoutes);
 
-// Route pour servir l'index.html
+// Routes pages EJS (frontend migré)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.render('index', { title: 'Agenda', heading: '📅 Mon Agenda Personnel' });
+});
+
+app.get('/login', (req, res) => {
+  res.render('login', { title: 'Connexion', heading: '🔐 Connexion' });
+});
+
+app.get('/settings', (req, res) => {
+  res.render('settings', { title: 'Paramètres', heading: '⚙️ Paramètres' });
+});
+
+// Route de test EJS (ne modifie pas le frontend existant)
+app.get('/ejs-test', (req, res) => {
+  res.render('ejs-test', {
+    title: 'Test EJS',
+    heading: 'Rendu EJS',
+    message: 'EJS est configuré et opérationnel sans toucher au code frontend.'
+  });
+});
+
+// Route de santé pour vérifier le statut du serveur
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Serveur agenda fonctionne correctement',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Gestion d'erreurs globale
@@ -57,6 +70,19 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route non trouvée' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Serveur agenda démarré sur http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Serveur agenda démarré sur http://localhost:${PORT}`);
+    console.log(`Endpoints disponibles:`);
+    console.log(`  - GET    /health`);
+    console.log(`  - GET    /api/users`);
+    console.log(`  - POST   /api/users`);
+    console.log(`  - GET    /api/events`);
+    console.log(`  - POST   /api/events`);
+    console.log(`  - PUT    /api/events/:id`);
+    console.log(`  - DELETE /api/events/:id`);
+    console.log(`  - GET    /ejs-test`);
+  });
+}
+
+module.exports = app;

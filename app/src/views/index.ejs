@@ -1,0 +1,85 @@
+<section class="container">
+  <header class="header">
+    <h1><%= heading %></h1>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <a href="/login" class="btn btn-secondary">Connexion</a>
+      <a href="/settings" class="btn btn-secondary">Paramètres</a>
+      <button id="addEventBtn" class="btn btn-primary">+ Nouvel Événement</button>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <section class="calendar-section">
+      <div class="calendar-header">
+        <button id="prevMonth" class="btn btn-secondary">‹ Précédent</button>
+        <h2 id="currentMonth"></h2>
+        <button id="nextMonth" class="btn btn-secondary">Suivant ›</button>
+      </div>
+      <div id="calendar" class="calendar-grid"></div>
+    </section>
+
+    <aside class="events-sidebar">
+      <h3>Événements à venir</h3>
+      <div id="eventsList" class="events-list"></div>
+    </aside>
+  </div>
+
+  <div id="eventModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Nouvel Événement</h3>
+        <span class="close" aria-label="Fermer">&times;</span>
+      </div>
+      <form id="eventForm" class="event-form">
+        <input type="hidden" id="eventId">
+        <div class="form-group">
+          <label for="eventTitle">Titre *</label>
+          <input type="text" id="eventTitle" name="title" required>
+        </div>
+        <div class="form-group">
+          <label for="eventDescription">Description</label>
+          <textarea id="eventDescription" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="eventStart">Date/Heure début *</label>
+            <input type="datetime-local" id="eventStart" name="start" required>
+          </div>
+          <div class="form-group">
+            <label for="eventEnd">Date/Heure fin *</label>
+            <input type="datetime-local" id="eventEnd" name="end">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="eventCategory">Catégorie</label>
+            <select id="eventCategory" name="category">
+              <option value="général">Général</option>
+              <option value="travail">Travail</option>
+              <option value="personnel">Personnel</option>
+              <option value="santé">Santé</option>
+              <option value="loisirs">Loisirs</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="eventPriority">Priorité</label>
+            <select id="eventPriority" name="priority">
+              <option value="basse">Basse</option>
+              <option value="moyenne">Moyenne</option>
+              <option value="haute">Haute</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="cancelBtn" class="btn btn-secondary">Annuler</button>
+          <button type="submit" class="btn btn-primary">Sauvegarder</button>
+          <button type="button" id="deleteBtn" class="btn btn-danger" style="display:none;">Supprimer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</section>
+
+<script src="/script.js"></script>

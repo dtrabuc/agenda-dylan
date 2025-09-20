@@ -1,0 +1,63 @@
+<section class="container" style="max-width:520px;">
+  <header class="header">
+    <h1><%= heading %></h1>
+    <a href="/" class="btn btn-secondary">← Retour</a>
+  </header>
+
+  <form id="loginForm" class="event-form">
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" required placeholder="votre@email">
+    </div>
+    <div class="form-group">
+      <label for="name">Nom (optionnel)</label>
+      <input type="text" id="name" placeholder="Votre nom">
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Se connecter / Créer</button>
+    </div>
+  </form>
+
+  <p>Astuce: On crée l'utilisateur si l'email n'existe pas encore.</p>
+
+  <div id="toast" class="toast"></div>
+</section>
+
+<script>
+  const toast = (msg, isError=false) => {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast ' + (isError ? 'error' : '');
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 2500);
+  };
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const name = document.getElementById('name').value.trim();
+
+    if (!email) return toast('Email requis', true);
+
+    try {
+      // Tente de trouver l'utilisateur par email
+      let user = await fetch('/api/users').then(r => r.json()).then(d => (d.data||[]).find(u => u.email === email));
+      if (!user) {
+        const res = await fetch('/api/users', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur création utilisateur');
+        user = data;
+      }
+      // Stocke l'userId
+      const id = (user.data && user.data.id) || user.id;
+      localStorage.setItem('userId', id);
+      toast('Connecté');
+      setTimeout(() => location.href = '/', 500);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+</script>
